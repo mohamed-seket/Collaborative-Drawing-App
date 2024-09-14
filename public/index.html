@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collaborative Drawing App</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      border: 1px solid black;
+      cursor: crosshair;
+    }
+    button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Collaborative Drawing App</h1>
+  <canvas id="drawingCanvas" width="500" height="500"></canvas>
+  <button onclick="clearCanvas()">Clear Canvas</button>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:8080');
+    const canvas = document.getElementById('drawingCanvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    // Unique color for each user
+    const userColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+
+    // Draw line on the canvas
+    function drawLine(x0, y0, x1, y1, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    // Send drawing data to the server
+    function sendDrawing(x0, y0, x1, y1) {
+      const drawingData = {
+        x0, y0, x1, y1, color: userColor
+      };
+      ws.send(JSON.stringify(drawingData));
+    }
+
+    // Start drawing on mouse down
+    canvas.onmousedown = (event) => {
+      drawing = true;
+      [prevX, prevY] = [event.offsetX, event.offsetY];
+    };
+
+    // Stop drawing on mouse up
+    canvas.onmouseup = () => {
+      drawing = false;
+    };
+
+    // Draw as the mouse moves
+    canvas.onmousemove = (event) => {
+      if (!drawing) return;
+      const [currX, currY] = [event.offsetX, event.offsetY];
+      drawLine(prevX, prevY, currX, currY, userColor);
+      sendDrawing(prevX, prevY, currX, currY);
+      [prevX, prevY] = [currX, currY];
+    };
+
+    // Clear the canvas
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Listen for incoming drawing data from other users
+    ws.onmessage = (event) => {
+  try {
+    // Check if the received data is a Blob (binary data)
+    if (event.data instanceof Blob) {
+      console.error('Received binary data. Blob type is not handled:', event.data);
+      return;
+    }
+
+    // Parse the received JSON data
+    const { x0, y0, x1, y1, color } = JSON.parse(event.data);
+    drawLine(x0, y0, x1, y1, color);
+  } catch (error) {
+    console.error('Error parsing message:', error); // Handle errors in JSON parsing
+  }
+};
+  </script>
+</body>
+</html>
