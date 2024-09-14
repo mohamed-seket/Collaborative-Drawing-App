@@ -13,7 +13,7 @@ Prerequisites
 Node.js (v14 or later)
 npm (Node Package Manager)
 # Steps to Run Locally
-Clone the Repository:git clone https://github.com/username/repository-name.git
+Clone the Repository:git clone https://github.com/mohamed-seket/Collaborative-Drawing-App.git
 Navigate to the Project Directory:cd repository-name
 Install Dependencies:npm install
 Start the Server:node server.js
